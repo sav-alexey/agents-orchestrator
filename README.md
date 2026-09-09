@@ -5,6 +5,8 @@ chats, and each chat is a long-lived CLI session you can steer mid-run. Chats of
 same project share a long-term memory in Qdrant, so a new chat can pick up what an
 older one figured out.
 
+![Screenshot](docs/screenshot.png)
+
 ## Running it
 
 Memory lives in Docker, the backend and the window on the host:
