@@ -1,0 +1,21 @@
+# Groups (like servers in Discord). Each one is a project folder that
+# `claude` runs in. Add as many as you like.
+groups:
+  - name: my-project
+    path: /Users/you/Documents/PythonProjects/my-project
+    full_access: true
+
+# Long-term memory shared by every chat of a project, stored in Qdrant
+# (`docker compose up -d qdrant`). Finished turns are indexed automatically;
+# agents read and write it through the search_memory / save_memory tools.
+memory:
+  enabled: true
+  url: http://127.0.0.1:6333
+  collection: project_memory
+  # Downloaded once on first use (~220 MB). Swap for intfloat/multilingual-e5-large
+  # for better retrieval at 10x the size — and give `collection` a new name when
+  # you do, since the vector size changes.
+  embedding_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  # Cosine score below which a hit counts as unrelated. Lower it if searches come
+  # back empty, raise it if they come back noisy.
+  min_score: 0.35

@@ -1,0 +1,14 @@
+node_modules/
+backend/.venv/
+backend/data/
+data/
+.env
+__pycache__/
+*.pyc
+
+# Personal/local config with real project names & paths — copy from config.yaml.example
+config.yaml
+
+# Credential/token files that live at repo root during local dev
+figma_new_token
+notion_mcp

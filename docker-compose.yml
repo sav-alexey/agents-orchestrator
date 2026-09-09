@@ -1,0 +1,79 @@
+# The whole stack: vector memory, the API that drives `claude`, and the UI.
+#
+#   cp .env.example .env   # fill in the paths and a token, once
+#   docker compose up -d --build
+#   open http://localhost:8080
+#
+# Host paths are mounted at *the same* absolute path inside the backend
+# container, so config.yaml, ~/.claude and everything an agent reads or writes
+# means the same thing on both sides — no path rewriting anywhere.
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.18.3
+    container_name: orchestrator-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # REST + dashboard at http://localhost:6333/dashboard
+      - "6334:6334"   # gRPC
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+
+  backend:
+    build:
+      context: ./backend
+    image: agents-orchestrator-backend
+    container_name: orchestrator-backend
+    restart: unless-stopped
+    depends_on:
+      - qdrant
+    ports:
+      - "8756:8756"
+    environment:
+      # Same home as on the host, so the CLI finds ~/.claude where it expects it.
+      HOME: ${HOST_HOME}
+      CONFIG_PATH: ${REPO_DIR}/config.yaml
+      DB_PATH: ${REPO_DIR}/data/orchestrator.db
+      # Overrides config.yaml: 127.0.0.1 is this container, not the host.
+      MEMORY_URL: http://qdrant:6333
+      # The container runs as root, and the CLI refuses to skip permission prompts
+      # as root unless it is told it is sandboxed. Without this every group marked
+      # `full_access: true` dies on connect with "cannot be used with root/sudo
+      # privileges". The isolation such a group gives up is the container's own.
+      IS_SANDBOX: "1"
+      # macOS keeps the Claude Code login in the Keychain, which a container
+      # cannot read. Put one of these in .env — `claude setup-token` produces
+      # the first, an API key from console.anthropic.com the second.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Every folder named in config.yaml must be reachable at its host path.
+      # One mount of the parent covers all the projects under it.
+      - ${PROJECTS_DIR}:${PROJECTS_DIR}
+      # Settings, agents, skills, plugins and session history — shared with the
+      # host CLI rather than a second, diverging copy.
+      - ${HOST_HOME}/.claude:${HOST_HOME}/.claude
+      - ${HOST_HOME}/.claude.json:${HOST_HOME}/.claude.json
+      # Embedding models downloaded at runtime (the default one is in the image).
+      - fastembed-cache:/opt/fastembed
+      # Uncomment to let agents drive Docker on the host — the client is already
+      # in the image. It hands the container full control of the daemon, so turn
+      # it on only for projects you would give that to anyway.
+      # - /var/run/docker.sock:/var/run/docker.sock
+
+  web:
+    image: nginx:alpine
+    container_name: orchestrator-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    volumes:
+      # Served straight from the source tree: a reload picks up UI edits, no
+      # rebuild. The page talks to the backend on :8756 directly, so streaming
+      # never has to survive a proxy's buffering.
+      - ./renderer:/usr/share/nginx/html:ro
+
+volumes:
+  fastembed-cache:

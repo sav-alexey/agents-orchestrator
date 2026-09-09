@@ -1,0 +1,7 @@
+fastapi==0.141.1
+python-multipart==0.0.32
+uvicorn==0.52.0
+PyYAML==6.0.3
+claude-agent-sdk==0.2.128
+qdrant-client==1.18.0
+fastembed==0.8.0

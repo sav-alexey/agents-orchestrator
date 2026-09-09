@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>agents-orchestrator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="groups" class="groups-rail"></div>
+  <div id="chats" class="chats-rail">
+    <div class="chats-header">
+      <span id="chats-title">—</span>
+      <span class="chats-header-actions">
+        <button id="memory-btn" title="Project memory">🧠</button>
+        <button id="new-chat-btn" title="New chat">+</button>
+      </span>
+    </div>
+    <div id="chats-list" class="chats-list"></div>
+  </div>
+  <div class="main-pane">
+    <div id="messages" class="messages"></div>
+    <div id="chat-settings" class="chat-settings" hidden>
+      <select id="model-select" title="Model for this chat"></select>
+      <select id="effort-select" title="Reasoning effort"></select>
+      <span id="settings-note" class="settings-note"></span>
+      <span id="context-gauge" class="context-gauge" hidden>
+        <span id="context-gauge-fill" class="context-gauge-fill"></span>
+        <span id="context-gauge-label" class="context-gauge-label"></span>
+      </span>
+    </div>
+    <form id="composer" class="composer">
+      <div id="command-menu" class="command-menu" hidden></div>
+      <div id="attachments" class="attachments" hidden></div>
+      <div class="composer-row">
+        <button id="composer-attach" type="button" title="Attach files">📎</button>
+        <textarea id="composer-input" placeholder="Message the agent…" rows="1"></textarea>
+        <button id="composer-stop" type="button" title="Stop the current turn" hidden>Stop</button>
+        <button id="composer-send" type="submit">Send</button>
+      </div>
+      <input id="composer-file" type="file" multiple hidden />
+    </form>
+  </div>
+  <div id="memory-overlay" class="memory-overlay" hidden>
+    <div class="memory-panel">
+      <div class="memory-panel-header">
+        <span>🧠 Memory · <span id="memory-group">—</span></span>
+        <button id="memory-close" title="Close">✕</button>
+      </div>
+      <div id="memory-status" class="memory-status"></div>
+      <form id="memory-search-form" class="memory-search">
+        <input id="memory-query" type="text" placeholder="What do you want to recall from this project?" />
+        <button type="submit">Search</button>
+      </form>
+      <div id="memory-results" class="memory-results"></div>
+      <form id="memory-note-form" class="memory-note">
+        <textarea id="memory-note" rows="2" placeholder="Write something into this project's memory…"></textarea>
+        <button type="submit">Remember</button>
+      </form>
+    </div>
+  </div>
+  <script src="markdown.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

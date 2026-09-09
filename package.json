@@ -1,0 +1,17 @@
+{
+  "name": "agents-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "db": "docker compose up -d qdrant",
+    "backend": "cd backend && .venv/bin/python3 -m uvicorn app.main:app --port 8756",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f backend",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
