@@ -694,3 +694,55 @@ body {
 }
 .memory-hit-chat:hover { text-decoration: underline; }
 .memory-hit-text { white-space: pre-wrap; line-height: 1.45; font-size: 13px; }
+
+/* --- work report ------------------------------------------------------- */
+
+.group-btn.report-btn { margin-top: auto; font-size: 20px; }
+#report-close { background: none; border: none; color: #96989d; cursor: pointer; font-size: 14px; }
+#report-close:hover { color: #dcddde; }
+.report-form { padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+.report-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; color: #96989d; }
+.report-dates input {
+  background: #383a40;
+  border: none;
+  border-radius: 6px;
+  color: #dcddde;
+  padding: 6px 8px;
+  font-family: inherit;
+  color-scheme: dark;
+}
+.report-presets { display: flex; gap: 4px; }
+.report-presets button, #report-toggle-all, #report-copy, #report-download {
+  background: #383a40;
+  color: #dcddde;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.report-presets button:hover, #report-toggle-all:hover, #report-copy:hover, #report-download:hover { background: #4a4d5c; }
+.report-groups-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #96989d; }
+.report-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.report-groups label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+.report-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.report-status { flex: 1; font-size: 12px; color: #96989d; }
+.report-status.error { color: #f9a8a8; }
+#report-submit {
+  background: #5865f2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 34px;
+  cursor: pointer;
+  font-weight: 600;
+}
+#report-submit:disabled { background: #4a4d5c; cursor: not-allowed; }
+.report-result { border-top: 1px solid #1e1f22; padding-top: 10px; line-height: 1.45; }

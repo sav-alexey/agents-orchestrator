@@ -243,6 +243,13 @@ function renderGroupsList() {
   add.title = 'Add a project folder';
   add.onclick = addGroup;
   groupsEl.appendChild(add);
+
+  const report = document.createElement('button');
+  report.className = 'group-btn report-btn';
+  report.textContent = '📋';
+  report.title = 'Work report';
+  report.onclick = openReportPanel;
+  groupsEl.appendChild(report);
 }
 
 // Adding a project needs a folder off the real filesystem, which a web page has
@@ -2096,5 +2103,174 @@ memoryNoteFormEl.addEventListener('submit', async (e) => {
     refreshMemoryStatus();
   } catch (err) {
     setMemoryStatus(String(err.message || err), true);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Work report
+//
+// Pick some days and some projects, and Claude condenses what those projects'
+// chats got done into a few bullets — something to read out at a meeting. The
+// project selection is remembered between openings.
+// ---------------------------------------------------------------------------
+
+const reportOverlayEl = document.getElementById('report-overlay');
+const reportCloseBtn = document.getElementById('report-close');
+const reportFormEl = document.getElementById('report-form');
+const reportFromEl = document.getElementById('report-from');
+const reportToEl = document.getElementById('report-to');
+const reportGroupsEl = document.getElementById('report-groups');
+const reportToggleAllBtn = document.getElementById('report-toggle-all');
+const reportStatusEl = document.getElementById('report-status');
+const reportCopyBtn = document.getElementById('report-copy');
+const reportDownloadBtn = document.getElementById('report-download');
+const reportSubmitBtn = document.getElementById('report-submit');
+const reportResultEl = document.getElementById('report-result');
+
+const REPORT_GROUPS_KEY = 'report.groups';
+let reportSummary = '';
+let reportFileName = 'report.txt';
+
+function localDate(daysAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function setReportStatus(text, isError = false) {
+  reportStatusEl.textContent = text;
+  reportStatusEl.classList.toggle('error', isError);
+}
+
+function savedReportGroups() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REPORT_GROUPS_KEY));
+    if (Array.isArray(saved)) return new Set(saved);
+  } catch {
+    // nothing saved yet, or unreadable — fall back to every project
+  }
+  return new Set(groups.map((g) => g.name));
+}
+
+function checkedReportGroups() {
+  return [...reportGroupsEl.querySelectorAll('input:checked')].map((el) => el.value);
+}
+
+function renderReportGroups() {
+  const selected = savedReportGroups();
+  reportGroupsEl.replaceChildren();
+  for (const g of groups) {
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.value = g.name;
+    box.checked = selected.has(g.name);
+    label.appendChild(box);
+    label.appendChild(document.createTextNode(g.name));
+    reportGroupsEl.appendChild(label);
+  }
+}
+
+function openReportPanel() {
+  if (!reportFromEl.value) reportFromEl.value = localDate(0);
+  if (!reportToEl.value) reportToEl.value = localDate(0);
+  renderReportGroups();
+  reportOverlayEl.hidden = false;
+}
+
+function closeReportPanel() {
+  reportOverlayEl.hidden = true;
+}
+
+reportCloseBtn.addEventListener('click', closeReportPanel);
+reportOverlayEl.addEventListener('mousedown', (e) => {
+  if (e.target === reportOverlayEl) closeReportPanel();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !reportOverlayEl.hidden) closeReportPanel();
+});
+
+for (const btn of reportFormEl.querySelectorAll('.report-presets button')) {
+  btn.addEventListener('click', () => {
+    const days = Number(btn.dataset.days);
+    // "Yesterday" is that one day; "7 days" runs up to and including today.
+    reportFromEl.value = localDate(days);
+    reportToEl.value = days === 1 ? localDate(1) : localDate(0);
+  });
+}
+
+reportToggleAllBtn.addEventListener('click', () => {
+  const boxes = [...reportGroupsEl.querySelectorAll('input')];
+  const check = boxes.some((b) => !b.checked);
+  for (const b of boxes) b.checked = check;
+});
+
+reportCopyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(reportSummary);
+    setReportStatus('Copied.');
+  } catch (err) {
+    setReportStatus(String(err.message || err), true);
+  }
+});
+
+// Saved as plain text: the bold day lines lose their asterisks, the rest of the
+// markdown (headings, dashes) reads fine as it is.
+reportDownloadBtn.addEventListener('click', () => {
+  const blob = new Blob([reportSummary.replace(/\*\*/g, '') + '\n'], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = reportFileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+reportFormEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const selected = checkedReportGroups();
+  if (!selected.length) {
+    setReportStatus('Pick at least one project.', true);
+    return;
+  }
+  localStorage.setItem(REPORT_GROUPS_KEY, JSON.stringify(selected));
+
+  reportSubmitBtn.disabled = true;
+  reportCopyBtn.hidden = true;
+  reportDownloadBtn.hidden = true;
+  reportResultEl.hidden = true;
+  setReportStatus('Asking Claude… this takes a minute on a busy week.');
+  try {
+    const res = await postJSON('/report', {
+      groups: selected,
+      date_from: reportFromEl.value,
+      date_to: reportToEl.value,
+      tz_offset_minutes: -new Date().getTimezoneOffset(),
+    });
+    if (!res.messages) {
+      setReportStatus('No chat activity in those projects on those days.');
+      return;
+    }
+    reportSummary = res.summary;
+    reportResultEl.innerHTML = renderMarkdown(res.summary);
+    reportResultEl.hidden = false;
+    reportCopyBtn.hidden = false;
+    reportDownloadBtn.hidden = false;
+    reportFileName =
+      reportFromEl.value === reportToEl.value
+        ? `report_${reportFromEl.value}.txt`
+        : `report_${reportFromEl.value}_${reportToEl.value}.txt`;
+    setReportStatus(`${res.messages} message(s) across ${res.projects.length} project(s).`);
+  } catch (err) {
+    let detail = String(err.message || err);
+    try {
+      detail = JSON.parse(detail).detail || detail;
+    } catch {
+      // not a JSON error body
+    }
+    setReportStatus(detail, true);
+  } finally {
+    reportSubmitBtn.disabled = false;
   }
 });

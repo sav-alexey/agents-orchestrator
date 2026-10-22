@@ -141,3 +141,25 @@ def list_messages(chat_id: int) -> list[dict]:
             (chat_id,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def list_messages_between(group_names: list[str], start: str, end: str) -> list[dict]:
+    """User and assistant messages of these groups' chats with start <= created_at < end.
+
+    Bounds are UTC ISO strings in the same format _now() writes, so comparing them
+    as text orders them correctly.
+    """
+    if not group_names:
+        return []
+    marks = ",".join("?" for _ in group_names)
+    with _lock:
+        conn = _connection()
+        rows = conn.execute(
+            "SELECT m.role, m.content, m.created_at, c.id AS chat_id, c.title AS chat_title, "
+            "c.group_name FROM messages m JOIN chats c ON c.id = m.chat_id "
+            f"WHERE c.group_name IN ({marks}) AND m.role IN ('user', 'assistant') "
+            "AND m.created_at >= ? AND m.created_at < ? "
+            "ORDER BY c.group_name, m.chat_id, m.id",
+            (*group_names, start, end),
+        ).fetchall()
+        return [dict(r) for r in rows]

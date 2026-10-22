@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app import db, memory
+from app import db, memory, report
 from app.config import GroupConfig, append_group, load_groups, load_memory
 from app.runner import (
     SESSION_GONE,
@@ -491,6 +491,38 @@ async def memory_add_note(name: str, body: MemoryNoteRequest):
             detail=status["error"] or "Project memory is disabled or unavailable",
         )
     return {"stored": stored}
+
+
+# ---------------------------------------------------------------------------
+# Work report
+#
+# A short bullet summary of what was done in the chosen projects over a span of
+# days, for retelling at a meeting. Read from the stored chat history.
+# ---------------------------------------------------------------------------
+
+
+class ReportRequest(BaseModel):
+    groups: list[str]
+    date_from: str  # YYYY-MM-DD, the user's local day
+    date_to: str
+    tz_offset_minutes: int = 0  # the user's offset from UTC, east positive
+
+
+@app.post("/report")
+async def work_report(body: ReportRequest):
+    if not body.groups:
+        raise HTTPException(status_code=400, detail="Pick at least one project")
+    for name in body.groups:
+        _require_group(name)
+    try:
+        return await report.build_report(
+            body.groups, body.date_from, body.date_to, body.tz_offset_minutes
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - a failed CLI call is a 502, not a crash
+        logger.exception("work report failed")
+        raise HTTPException(status_code=502, detail=f"Could not build the report: {exc}") from exc
 
 
 class PermissionResponseRequest(BaseModel):

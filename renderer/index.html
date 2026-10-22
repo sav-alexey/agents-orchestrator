@@ -58,6 +58,37 @@
       </form>
     </div>
   </div>
+  <div id="report-overlay" class="memory-overlay" hidden>
+    <div class="memory-panel">
+      <div class="memory-panel-header">
+        <span>📋 Work report</span>
+        <button id="report-close" title="Close">✕</button>
+      </div>
+      <form id="report-form" class="report-form">
+        <div class="report-dates">
+          <label>From <input id="report-from" type="date" required /></label>
+          <label>To <input id="report-to" type="date" required /></label>
+          <span class="report-presets">
+            <button type="button" data-days="0">Today</button>
+            <button type="button" data-days="1">Yesterday</button>
+            <button type="button" data-days="7">7 days</button>
+          </span>
+        </div>
+        <div class="report-groups-head">
+          <span>Projects</span>
+          <button type="button" id="report-toggle-all">All / none</button>
+        </div>
+        <div id="report-groups" class="report-groups"></div>
+        <div class="report-actions">
+          <span id="report-status" class="report-status"></span>
+          <button id="report-copy" type="button" hidden>Copy</button>
+          <button id="report-download" type="button" hidden>Download .txt</button>
+          <button id="report-submit" type="submit">Export</button>
+        </div>
+      </form>
+      <div id="report-result" class="memory-results report-result markdown" hidden></div>
+    </div>
+  </div>
   <script src="markdown.js"></script>
   <script src="app.js"></script>
 </body>
