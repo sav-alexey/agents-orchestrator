@@ -26,6 +26,12 @@ for _extra_bin in ("/opt/homebrew/bin", "/usr/local/bin", str(Path.home() / ".ca
     if _extra_bin not in os.environ.get("PATH", "").split(os.pathsep):
         os.environ["PATH"] = os.pathsep.join(filter(None, [os.environ.get("PATH", ""), _extra_bin]))
 
+# The CLI gives each MCP server 30s to connect. A `uvx` server that has to
+# re-resolve its package (jira: ~100 deps) while a handful of others start
+# alongside it can blow past that, and the agent just comes up without its
+# tools. Give them more room unless the env already says otherwise.
+os.environ.setdefault("MCP_TIMEOUT", "90000")
+
 PERMISSION_TIMEOUT_SECONDS = int(os.environ.get("PERMISSION_TIMEOUT_SECONDS", 600))
 QUESTION_TIMEOUT_SECONDS = int(os.environ.get("QUESTION_TIMEOUT_SECONDS", 1800))
 

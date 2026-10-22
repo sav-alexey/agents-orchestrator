@@ -848,8 +848,7 @@ async function selectGroup(name) {
   if (chatsCache.length) {
     await selectChat(chatsCache[0].id);
   } else {
-    renderMessages([]);
-    renderAttachments(); // no chat selected — clear any leftover chips
+    await createChat(); // auto-create the first chat so the composer is usable immediately
   }
 }
 
